@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Search, Dna, Activity, CheckCircle2, XCircle } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -24,6 +25,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<ValidationResult[] | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<Record<string, string>>({});
+  const router = useRouter();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,9 +68,12 @@ export default function Home() {
     : false;
 
   const handleContinue = () => {
-    console.log("Proceeding with:", selectedSpecies);
-    // TODO: Route to the genomic journey phase
-    alert("Navigating to Chromosome view... (To be implemented)");
+    // Format: ?p=proteinName:accession,proteinName2:accession2
+    const params = Object.entries(selectedSpecies)
+      .map(([protein, accession]) => `${encodeURIComponent(protein)}:${encodeURIComponent(accession)}`)
+      .join(',');
+    
+    router.push(`/journey?p=${params}`);
   };
 
   return (
