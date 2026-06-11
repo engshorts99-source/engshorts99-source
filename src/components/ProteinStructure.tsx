@@ -13,6 +13,7 @@ export default function ProteinStructure({ accession, name }: ProteinStructurePr
   const viewerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [domains, setDomains] = useState<any[]>([]);
+  const [viewerInstance, setViewerInstance] = useState<any>(null);
 
   useEffect(() => {
     async function fetchDomains() {
@@ -48,11 +49,26 @@ export default function ProteinStructure({ accession, name }: ProteinStructurePr
         viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
         viewer.zoomTo();
         viewer.render();
+        setViewerInstance(viewer);
         setLoaded(true);
       })
       .catch(err => {
         console.error("Failed to load PDB:", err);
       });
+  };
+
+  const highlightDomain = (start: number, end: number) => {
+    if (!viewerInstance || !start || !end) return;
+    // Reset all to spectrum with low opacity
+    viewerInstance.setStyle({}, { cartoon: { color: 'spectrum', opacity: 0.5 } });
+    
+    // Create array of residue indices
+    const resiArray = [];
+    for (let i = start; i <= end; i++) resiArray.push(i);
+    
+    // Highlight specific domain
+    viewerInstance.setStyle({resi: resiArray}, { cartoon: { color: '#ef4444', opacity: 1.0 } });
+    viewerInstance.render();
   };
 
   return (
@@ -87,7 +103,10 @@ export default function ProteinStructure({ accession, name }: ProteinStructurePr
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
-              style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-focus)' }}
+              onClick={() => highlightDomain(d.location?.start?.value, d.location?.end?.value)}
+              style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-focus)', cursor: 'pointer', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-focus)')}
             >
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.description || d.type}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>

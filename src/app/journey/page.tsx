@@ -8,12 +8,11 @@ import CellLocalization from '@/components/CellLocalization';
 import CrosstalkNetwork from '@/components/CrosstalkNetwork';
 import styles from './page.module.css';
 
-const STAGES = [
+const BASE_STAGES = [
   "Genomic Locus",
   "Transcription",
   "3D Structure",
-  "Localization",
-  "Crosstalk"
+  "Localization"
 ];
 
 function JourneyContent() {
@@ -30,32 +29,31 @@ function JourneyContent() {
   });
 
   const mainProtein = proteins[0]?.name || 'Target Protein';
+  
+  const isMultiple = proteins.length > 1;
+  const STAGES = [...BASE_STAGES, ...(isMultiple ? ["Crosstalk"] : [])];
 
   useEffect(() => {
     if (!proteins.length) return;
     
-    // Fetch precise genomic location using MyGene.info
-    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos`)
-      .then(res => res.json())
-      .then(data => {
-        const hit = data.hits?.[0];
-        const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
-        const map_location = hit?.map_location || 'Unknown Band';
-        
-        // Mock specific TFs based on gene for MVP
-        let tfs = ['TBP', 'SP1']; // Basal default
-        if (proteins[0].name.toUpperCase() === 'TP53' || proteins[0].name.toUpperCase() === 'P53') {
-          tfs = ['HOXA5', 'NF-kB', 'MYC', 'SP1'];
-        } else if (proteins[0].name.toUpperCase() === 'EGFR') {
-          tfs = ['AP-1', 'SP1', 'STAT3', 'p53'];
-        }
+    // Fetch precise genomic location and exact TFs concurrently
+    Promise.all([
+      fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos`).then(r => r.json()),
+      fetch(`/api/tfs?gene=${proteins[0].name}`).then(r => r.json())
+    ])
+    .then(([myGeneData, tfData]) => {
+      const hit = myGeneData.hits?.[0];
+      const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
+      const map_location = hit?.map_location || 'Unknown Band';
+      
+      const tfs = tfData.tfs || ['TBP', 'SP1'];
 
-        setGeneInfo({ chr, map_location, tfs });
-      })
-      .catch(err => {
-        console.error("Gene info fetch error", err);
-        setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'] });
-      });
+      setGeneInfo({ chr, map_location, tfs });
+    })
+    .catch(err => {
+      console.error("Gene info fetch error", err);
+      setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'] });
+    });
   }, [proteins]);
 
   // Info content per stage
@@ -246,8 +244,8 @@ function JourneyContent() {
             </motion.div>
           )}
 
-          {/* STAGE 4: Crosstalk */}
-          {stage === 4 && (
+          {/* STAGE 4: Crosstalk (Only shown if multiple proteins) */}
+          {stage === 4 && isMultiple && (
             <motion.div
               key="stage-4"
               initial={{ scale: 0.8, opacity: 0 }}
