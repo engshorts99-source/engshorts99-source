@@ -35,7 +35,7 @@ export default function ProteinStructure({ accession, name }: ProteinStructurePr
   const initViewer = () => {
     if (!window.$3Dmol || !viewerRef.current) return;
     
-    const pdbUri = `https://alphafold.ebi.ac.uk/files/AF-${accession}-F1-model_v4.pdb`;
+    const pdbUri = `https://alphafold.ebi.ac.uk/files/AF-${accession}-F1-model_v6.pdb`;
     
     const viewer = window.$3Dmol.createViewer(viewerRef.current, {
       defaultcolors: window.$3Dmol.rasmolElementColors

@@ -20,6 +20,7 @@ function JourneyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [stage, setStage] = useState(0);
+  const [geneInfo, setGeneInfo] = useState<{ chr: string; map_location: string; tfs: string[] } | null>(null);
   
   // Parse "?p=p53:P04637,EGFR:P00533"
   const pParam = searchParams.get('p') || '';
@@ -30,15 +31,46 @@ function JourneyContent() {
 
   const mainProtein = proteins[0]?.name || 'Target Protein';
 
+  useEffect(() => {
+    if (!proteins.length) return;
+    
+    // Fetch precise genomic location using MyGene.info
+    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos`)
+      .then(res => res.json())
+      .then(data => {
+        const hit = data.hits?.[0];
+        const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
+        const map_location = hit?.map_location || 'Unknown Band';
+        
+        // Mock specific TFs based on gene for MVP
+        let tfs = ['TBP', 'SP1']; // Basal default
+        if (proteins[0].name.toUpperCase() === 'TP53' || proteins[0].name.toUpperCase() === 'P53') {
+          tfs = ['HOXA5', 'NF-kB', 'MYC', 'SP1'];
+        } else if (proteins[0].name.toUpperCase() === 'EGFR') {
+          tfs = ['AP-1', 'SP1', 'STAT3', 'p53'];
+        }
+
+        setGeneInfo({ chr, map_location, tfs });
+      })
+      .catch(err => {
+        console.error("Gene info fetch error", err);
+        setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'] });
+      });
+  }, [proteins]);
+
   // Info content per stage
   const stageInfo = [
     {
       title: "Genomic Locus",
-      desc: `Zooming into the specific chromosome containing the gene for ${mainProtein}. The blinking indicator shows the exact locus where this gene resides.`
+      desc: geneInfo 
+        ? `Zooming into Chromosome ${geneInfo.chr} (Locus: ${geneInfo.map_location}) containing the gene for ${mainProtein}. The blinking indicator shows the exact locus out of 23 chromosome pairs where this gene resides.`
+        : `Locating the specific chromosome containing the gene for ${mainProtein}...`
     },
     {
       title: "Transcription Regulation",
-      desc: `At the nucleosome level, Transcription Factors (TFs) bind to the promoter region, recruiting RNA Polymerase II to begin transcribing the ${mainProtein} gene into mRNA.`
+      desc: geneInfo
+        ? `At the nucleosome level, specific Transcription Factors (${geneInfo.tfs.join(', ')}) bind to the promoter region. They regulate and recruit RNA Polymerase II to begin transcribing the ${mainProtein} gene.`
+        : `Transcription Factors bind to the promoter region, recruiting RNA Polymerase II...`
     },
     {
       title: "Translation & 3D Structure",
@@ -118,12 +150,22 @@ function JourneyContent() {
                 <circle cx="50" cy="150" r="10" fill="#4b5563" />
               </svg>
               
-              {/* Blinking Locus */}
+              {/* Blinking Locus with Label */}
               <motion.div 
                 className={styles.locusIndicator}
                 animate={{ opacity: [0.2, 1, 0.2] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
+              {geneInfo && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1 }}
+                  style={{ position: 'absolute', top: '35%', left: '110%', whiteSpace: 'nowrap', color: 'var(--accent-secondary)', fontWeight: 'bold' }}
+                >
+                  ◀ Chr {geneInfo.chr} ({geneInfo.map_location})
+                </motion.div>
+              )}
             </motion.div>
           )}
 
@@ -144,24 +186,24 @@ function JourneyContent() {
               ))}
               
               {/* Transcription Factors */}
-              <motion.div 
-                className={styles.tfBinding}
-                style={{ top: '20%', left: '-20px' }}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1, type: 'spring' }}
-              >
-                TF
-              </motion.div>
-              <motion.div 
-                className={styles.tfBinding}
-                style={{ top: '25%', right: '-20px' }}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1.2, type: 'spring' }}
-              >
-                TF
-              </motion.div>
+              {geneInfo?.tfs.map((tf, i) => (
+                <motion.div 
+                  key={i}
+                  className={styles.tfBinding}
+                  style={{ 
+                    top: `${15 + i * 8}%`, 
+                    left: i % 2 === 0 ? '-30px' : undefined,
+                    right: i % 2 !== 0 ? '-30px' : undefined,
+                    backgroundColor: i === 0 ? '#f59e0b' : '#3b82f6',
+                    boxShadow: `0 0 15px ${i === 0 ? '#f59e0b' : '#3b82f6'}`
+                  }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 1 + i * 0.2, type: 'spring' }}
+                >
+                  {tf}
+                </motion.div>
+              ))}
 
               {/* RNA Polymerase moving down */}
               <motion.div
