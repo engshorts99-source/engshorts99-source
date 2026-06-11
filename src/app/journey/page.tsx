@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import ProteinStructure from '@/components/ProteinStructure';
 import styles from './page.module.css';
 
 const STAGES = [
@@ -173,8 +174,22 @@ function JourneyContent() {
             </motion.div>
           )}
 
+          {/* STAGE 2: Translation & 3D Structure */}
+          {stage === 2 && (
+            <motion.div
+              key="stage-2"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ duration: 1 }}
+              style={{ width: '100%', height: '100%', maxWidth: '1000px', display: 'flex', alignItems: 'center' }}
+            >
+              <ProteinStructure accession={proteins[0]?.accession} name={proteins[0]?.name} />
+            </motion.div>
+          )}
+
           {/* Placeholder for future stages */}
-          {stage > 1 && (
+          {stage > 2 && (
             <motion.div
               key={`stage-${stage}`}
               initial={{ opacity: 0 }}
