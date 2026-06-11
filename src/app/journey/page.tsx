@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProteinStructure from '@/components/ProteinStructure';
+import CellLocalization from '@/components/CellLocalization';
+import CrosstalkNetwork from '@/components/CrosstalkNetwork';
 import styles from './page.module.css';
 
 const STAGES = [
@@ -188,16 +190,31 @@ function JourneyContent() {
             </motion.div>
           )}
 
-          {/* Placeholder for future stages */}
-          {stage > 2 && (
+          {/* STAGE 3: Localization */}
+          {stage === 3 && (
             <motion.div
-              key={`stage-${stage}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-2xl text-[var(--text-muted)] border border-dashed border-[var(--border-focus)] p-12 rounded-2xl"
+              key="stage-3"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ duration: 1 }}
+              style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              {STAGES[stage]} implementation pending...
+              <CellLocalization accession={proteins[0]?.accession} name={proteins[0]?.name} />
+            </motion.div>
+          )}
+
+          {/* STAGE 4: Crosstalk */}
+          {stage === 4 && (
+            <motion.div
+              key="stage-4"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ duration: 1 }}
+              style={{ width: '100%', maxWidth: '800px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <CrosstalkNetwork proteins={proteins} />
             </motion.div>
           )}
 
