@@ -37,11 +37,14 @@ function JourneyContent() {
   useEffect(() => {
     if (!proteins.length) return;
     
-    // Fetch precise genomic location and exact TFs by chaining correctly
-    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}%20OR%20alias:${proteins[0].name}&species=human&fields=map_location,genomic_pos,symbol`)
+    // Fetch precise genomic location and exact TFs
+    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}%20OR%20alias:${proteins[0].name}&species=human&fields=genomic_pos,map_location,symbol`)
       .then(res => res.json())
       .then(myGeneData => {
-        const hit = myGeneData.hits?.[0];
+        // Find the hit that exactly matches the queried symbol if possible
+        const exactHit = myGeneData.hits?.find((h: any) => h.symbol?.toUpperCase() === proteins[0].name.toUpperCase());
+        const hit = exactHit || myGeneData.hits?.[0];
+        
         const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
         const map_location = hit?.map_location || 'Unknown Band';
         const officialSymbol = hit?.symbol || proteins[0].name.toUpperCase();

@@ -25,16 +25,31 @@ export async function GET(request: Request) {
       const data = await response.json();
       
       if (data.results && data.results.length > 0) {
-        // Group by organism to allow user selection
-        const organisms = data.results.map((r: any) => ({
-          organism: r.organism.scientificName,
-          commonName: r.organism.commonName || r.organism.scientificName,
-          accession: r.primaryAccession,
-          proteinName: r.proteinDescription?.recommendedName?.fullName?.value || 'Unknown Protein',
-        }));
+        // Group by organism, prioritizing exact gene name matches
+        const organismMap = new Map();
+        for (const r of data.results) {
+          const org = r.organism.scientificName;
+          const officialGene = r.genes?.[0]?.geneName?.value?.toUpperCase() || '';
+          const isExact = officialGene === protein.toUpperCase();
+          
+          const mapped = {
+            organism: org,
+            commonName: r.organism.commonName || org,
+            accession: r.primaryAccession,
+            proteinName: r.proteinDescription?.recommendedName?.fullName?.value || 'Unknown Protein',
+          };
+
+          if (!organismMap.has(org)) {
+            organismMap.set(org, mapped);
+          } else {
+            // Overwrite if this hit is an exact match and the existing one wasn't necessarily
+            if (isExact) {
+              organismMap.set(org, mapped);
+            }
+          }
+        }
         
-        // Remove duplicates by organism
-        const uniqueOrganisms = Array.from(new Map(organisms.map((item: any) => [item.organism, item])).values());
+        const uniqueOrganisms = Array.from(organismMap.values());
         
         results.push({
           query: protein,
