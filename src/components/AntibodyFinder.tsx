@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AntibodyFinderProps {
@@ -9,14 +9,24 @@ interface AntibodyFinderProps {
 
 export default function AntibodyFinder({ gene }: AntibodyFinderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [antibodies, setAntibodies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const apps = [
-    { name: 'Broad / All Applications', query: gene, color: 'var(--accent-primary)' },
-    { name: 'Western Blot (WB)', query: `${gene} WB`, color: '#3b82f6' },
-    { name: 'Immunohistochemistry (IHC)', query: `${gene} IHC`, color: '#f59e0b' },
-    { name: 'Immunofluorescence (IF)', query: `${gene} IF`, color: '#10b981' },
-    { name: 'ELISA', query: `${gene} ELISA`, color: '#ef4444' }
-  ];
+  useEffect(() => {
+    if (isOpen && antibodies.length === 0) {
+      setLoading(true);
+      fetch(`/api/antibodies?gene=${gene}`)
+        .then(r => r.json())
+        .then(data => {
+          setAntibodies(data.results || []);
+          setLoading(false);
+        })
+        .catch(e => {
+          console.error(e);
+          setLoading(false);
+        });
+    }
+  }, [isOpen, gene, antibodies.length]);
 
   return (
     <>
@@ -72,8 +82,10 @@ export default function AntibodyFinder({ gene }: AntibodyFinderProps) {
                 borderRadius: '1rem',
                 padding: '2rem',
                 width: '90%',
-                maxWidth: '500px',
-                position: 'relative'
+                maxWidth: '600px',
+                position: 'relative',
+                maxHeight: '80vh',
+                overflowY: 'auto'
               }}
             >
               <button 
@@ -89,43 +101,61 @@ export default function AntibodyFinder({ gene }: AntibodyFinderProps) {
                 Validated Antibodies for {gene}
               </h2>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                Select an application below to search CiteAb, the leading citation-ranked antibody search engine, for experimentally validated {gene} antibodies.
+                Directly displaying experimentally validated antibodies (WB, IHC, IF, ELISA) sourced from Human Protein Atlas and major suppliers.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {apps.map(app => (
-                  <a 
-                    key={app.name}
-                    href={`https://www.citeab.com/antibodies/search?q=${encodeURIComponent(app.query)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      backgroundColor: 'var(--bg-surface)',
-                      border: `1px solid ${app.color}40`,
-                      borderRadius: '0.5rem',
-                      textDecoration: 'none',
-                      color: 'var(--text-primary)',
-                      transition: 'all 0.2s',
-                      fontWeight: 600
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.backgroundColor = `${app.color}15`;
-                      e.currentTarget.style.borderColor = app.color;
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                      e.currentTarget.style.borderColor = `${app.color}40`;
-                    }}
-                  >
-                    <span>{app.name}</span>
-                    <span style={{ color: app.color }}>Search ↗</span>
-                  </a>
-                ))}
-              </div>
+              {loading ? (
+                <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
+                  Fetching verified antibodies...
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {antibodies.map((ab, idx) => (
+                    <div 
+                      key={idx}
+                      style={{
+                        padding: '1rem',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: `1px solid var(--border-focus)`,
+                        borderRadius: '0.5rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ab.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Supplier: {ab.supplier}</div>
+                        </div>
+                        <a 
+                          href={ab.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{
+                            backgroundColor: 'var(--accent-primary)',
+                            color: '#fff',
+                            textDecoration: 'none',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '1rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          View Details ↗
+                        </a>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {ab.applications.map((app: string) => (
+                          <span key={app} style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', backgroundColor: 'var(--bg-surface-elevated)', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
+                            {app} Validated
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {antibodies.length === 0 && (
+                     <div style={{ color: 'var(--text-muted)' }}>No exact matches found. Search generic catalogs for {gene}.</div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </div>
         )}
