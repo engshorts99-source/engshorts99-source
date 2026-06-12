@@ -99,6 +99,33 @@ function JourneyContent() {
     <main className={styles.main}>
       {/* Sidebar Progress */}
       <div className={styles.sidebar}>
+        
+        {/* Back to Home Button */}
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0 0 2rem 0',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            transition: 'color 0.2s',
+            fontFamily: 'inherit'
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          Back to Search
+        </button>
+
         {STAGES.map((s, idx) => (
           <div 
             key={s} 

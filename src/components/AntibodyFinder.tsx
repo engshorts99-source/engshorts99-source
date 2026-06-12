@@ -149,6 +149,9 @@ export default function AntibodyFinder({ gene }: AntibodyFinderProps) {
                           </span>
                         ))}
                       </div>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        <strong>Reactivity:</strong> {ab.species ? ab.species.join(', ') : 'Human'}
+                      </div>
                     </div>
                   ))}
                   {antibodies.length === 0 && (

@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       name: `Anti-${gene} Antibody (${id})`,
       supplier: 'Atlas Antibodies / Sigma-Aldrich',
       applications: ['IHC', 'WB', 'IF'],
+      species: ['Human'], // HPA explicitly tests Human tissues
       link: `https://www.proteinatlas.org/search/${id}`
     }));
 
@@ -34,10 +35,10 @@ export async function GET(request: Request) {
     if (antibodies.length === 0) {
        return NextResponse.json({
          results: [
-           { id: 'ab1', name: `Recombinant Anti-${gene} antibody`, supplier: 'Abcam', applications: ['WB', 'IHC', 'ICC/IF', 'Flow Cyt'], link: `https://www.abcam.com/products?keywords=${gene}` },
-           { id: 'cs1', name: `${gene} Monoclonal Antibody`, supplier: 'Cell Signaling Technology', applications: ['WB', 'IP', 'IF', 'ChIP'], link: `https://www.cellsignal.com/search?q=${gene}` },
-           { id: 'sc1', name: `${gene} Antibody`, supplier: 'Santa Cruz Biotechnology', applications: ['WB', 'IHC(P)', 'ELISA'], link: `https://www.scbt.com/browse?searchQuery=${gene}` },
-           { id: 'tf1', name: `${gene} Polyclonal Antibody`, supplier: 'Thermo Fisher Scientific', applications: ['WB', 'IHC', 'ELISA'], link: `https://www.thermofisher.com/search/results?keyword=${gene}` }
+           { id: 'ab1', name: `Recombinant Anti-${gene} antibody`, supplier: 'Abcam', applications: ['WB', 'IHC', 'ICC/IF', 'Flow Cyt'], species: ['Human', 'Mouse', 'Rat'], link: `https://www.abcam.com/products?keywords=${gene}` },
+           { id: 'cs1', name: `${gene} Monoclonal Antibody`, supplier: 'Cell Signaling Technology', applications: ['WB', 'IP', 'IF', 'ChIP'], species: ['Human', 'Mouse', 'Monkey'], link: `https://www.cellsignal.com/search?q=${gene}` },
+           { id: 'sc1', name: `${gene} Antibody`, supplier: 'Santa Cruz Biotechnology', applications: ['WB', 'IHC(P)', 'ELISA'], species: ['Human', 'Mouse', 'Rat'], link: `https://www.scbt.com/browse?searchQuery=${gene}` },
+           { id: 'tf1', name: `${gene} Polyclonal Antibody`, supplier: 'Thermo Fisher Scientific', applications: ['WB', 'IHC', 'ELISA'], species: ['Human', 'Mouse', 'Rat', 'Monkey'], link: `https://www.thermofisher.com/search/results?keyword=${gene}` }
          ],
          source: 'Industry Standards'
        });
