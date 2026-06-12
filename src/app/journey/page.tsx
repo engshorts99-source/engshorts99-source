@@ -38,7 +38,7 @@ function JourneyContent() {
     if (!proteins.length) return;
     
     // Fetch precise genomic location and exact TFs by chaining correctly
-    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos,symbol`)
+    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}%20OR%20alias:${proteins[0].name}&species=human&fields=map_location,genomic_pos,symbol`)
       .then(res => res.json())
       .then(myGeneData => {
         const hit = myGeneData.hits?.[0];
