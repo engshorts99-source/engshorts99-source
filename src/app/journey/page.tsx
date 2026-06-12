@@ -35,15 +35,24 @@ function JourneyContent() {
   const STAGES = [...BASE_STAGES, ...(isMultiple ? ["Crosstalk"] : [])];
 
   useEffect(() => {
-    if (!proteins.length) return;
-    
-    // Fetch precise genomic location and exact TFs
-    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}%20OR%20alias:${proteins[0].name}&species=human&fields=genomic_pos,map_location,symbol`)
-      .then(res => res.json())
+    if (proteins.length > 0) {
+      // The user already selected the exact accession (e.g. zbp1:Q9H171).
+      const selectedAccession = proteins[0].accession;
+      
+      // Fetch precise genomic location and exact TFs, including uniprot IDs
+      fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}%20OR%20alias:${proteins[0].name}&species=human&fields=genomic_pos,map_location,symbol,uniprot`)
+      .then(r => r.json())
       .then(myGeneData => {
-        // Find the hit that exactly matches the queried symbol if possible
-        const exactHit = myGeneData.hits?.find((h: any) => h.symbol?.toUpperCase() === proteins[0].name.toUpperCase());
-        const hit = exactHit || myGeneData.hits?.[0];
+        // Find the hit that exactly matches the queried accession from UniProt
+        const exactHit = myGeneData.hits?.find((h: any) => 
+          h.uniprot?.['Swiss-Prot'] === selectedAccession || 
+          h.uniprot?.TrEMBL === selectedAccession
+        );
+        
+        // If not found by accession, fallback to symbol match
+        const symbolHit = myGeneData.hits?.find((h: any) => h.symbol?.toUpperCase() === proteins[0].name.toUpperCase());
+        
+        const hit = exactHit || symbolHit || myGeneData.hits?.[0];
         
         const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
         const map_location = hit?.map_location || 'Unknown Band';
@@ -62,6 +71,7 @@ function JourneyContent() {
         console.error("Gene info fetch error", err);
         setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'], symbol: proteins[0].name, tfSource: 'Fallback' });
       });
+    }
   }, [proteins]);
 
   // Info content per stage

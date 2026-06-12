@@ -10,7 +10,8 @@ type OrganismOption = {
   organism: string;
   commonName: string;
   accession: string;
-  proteinName: string;
+  proteinName?: string;
+  officialGene?: string;
 };
 
 type ValidationResult = {
@@ -152,7 +153,7 @@ export default function Home() {
                   
                   {res.found && res.options.length > 0 && (
                     <div>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Select Organism:</p>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Multiple matches found. Select specific protein:</p>
                       <div className={styles.speciesGrid}>
                         {res.options.map((opt) => (
                           <div 
@@ -160,8 +161,8 @@ export default function Home() {
                             onClick={() => handleSpeciesSelect(res.query, opt.accession)}
                             className={`${styles.speciesCard} ${selectedSpecies[res.query] === opt.accession ? styles.speciesSelected : ''}`}
                           >
-                            <span className={styles.speciesCommon}>{opt.commonName}</span>
-                            <span className={styles.speciesScientific}>{opt.organism}</span>
+                            <span className={styles.speciesCommon}>{opt.proteinName} {opt.officialGene ? `(${opt.officialGene})` : ''}</span>
+                            <span className={styles.speciesScientific}>{opt.commonName}</span>
                             <span className={styles.speciesAccession}>{opt.accession}</span>
                           </div>
                         ))}

@@ -25,36 +25,19 @@ export async function GET(request: Request) {
       const data = await response.json();
       
       if (data.results && data.results.length > 0) {
-        // Group by organism, prioritizing exact gene name matches
-        const organismMap = new Map();
-        for (const r of data.results) {
-          const org = r.organism.scientificName;
-          const officialGene = r.genes?.[0]?.geneName?.value?.toUpperCase() || '';
-          const isExact = officialGene === protein.toUpperCase();
-          
-          const mapped = {
-            organism: org,
-            commonName: r.organism.commonName || org,
-            accession: r.primaryAccession,
-            proteinName: r.proteinDescription?.recommendedName?.fullName?.value || 'Unknown Protein',
-          };
-
-          if (!organismMap.has(org)) {
-            organismMap.set(org, mapped);
-          } else {
-            // Overwrite if this hit is an exact match and the existing one wasn't necessarily
-            if (isExact) {
-              organismMap.set(org, mapped);
-            }
-          }
-        }
-        
-        const uniqueOrganisms = Array.from(organismMap.values());
+        // Return up to 5 best options directly to let the user select the exact protein
+        const options = data.results.slice(0, 5).map((r: any) => ({
+          organism: r.organism.scientificName,
+          commonName: r.organism.commonName || r.organism.scientificName,
+          accession: r.primaryAccession,
+          proteinName: r.proteinDescription?.recommendedName?.fullName?.value || 'Unknown Protein',
+          officialGene: r.genes?.[0]?.geneName?.value || '',
+        }));
         
         results.push({
           query: protein,
           found: true,
-          options: uniqueOrganisms
+          options: options
         });
       } else {
         results.push({
