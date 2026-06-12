@@ -19,8 +19,8 @@ export default function CrosstalkNetwork({ proteins }: CrosstalkNetworkProps) {
       if (!proteins.length) return;
       
       const identifiers = proteins.map(p => p.name).join('%0d');
-      // Limit to max 10 interactors for clarity
-      const url = `https://string-db.org/api/json/network?identifiers=${identifiers}&species=9606&limit=10`;
+      // Add up to 15 intermediate nodes to show "stepping stones" between queried proteins
+      const url = `https://string-db.org/api/json/network?identifiers=${identifiers}&species=9606&add_nodes=15`;
 
       try {
         const res = await fetch(url);
@@ -30,16 +30,21 @@ export default function CrosstalkNetwork({ proteins }: CrosstalkNetworkProps) {
         const links: any[] = [];
 
         data.forEach((interaction: any) => {
+          const isAInput = proteins.some(p => p.name.toUpperCase() === interaction.preferredName_A.toUpperCase());
           if (!nodesMap.has(interaction.preferredName_A)) {
             nodesMap.set(interaction.preferredName_A, { 
               id: interaction.preferredName_A, 
-              val: proteins.some(p => p.name.toUpperCase() === interaction.preferredName_A.toUpperCase()) ? 20 : 5
+              val: isAInput ? 20 : 5,
+              color: isAInput ? '#3b82f6' : '#6b7280' // Inputs are blue, intermediates are gray
             });
           }
+          
+          const isBInput = proteins.some(p => p.name.toUpperCase() === interaction.preferredName_B.toUpperCase());
           if (!nodesMap.has(interaction.preferredName_B)) {
             nodesMap.set(interaction.preferredName_B, { 
               id: interaction.preferredName_B, 
-              val: proteins.some(p => p.name.toUpperCase() === interaction.preferredName_B.toUpperCase()) ? 20 : 5 
+              val: isBInput ? 20 : 5,
+              color: isBInput ? '#3b82f6' : '#6b7280' 
             });
           }
           
@@ -53,7 +58,7 @@ export default function CrosstalkNetwork({ proteins }: CrosstalkNetworkProps) {
         // Ensure searched proteins are in nodes even if no crosstalk found among them
         proteins.forEach(p => {
           if (!nodesMap.has(p.name.toUpperCase())) {
-            nodesMap.set(p.name.toUpperCase(), { id: p.name.toUpperCase(), val: 20 });
+            nodesMap.set(p.name.toUpperCase(), { id: p.name.toUpperCase(), val: 20, color: '#3b82f6' });
           }
         });
 
@@ -87,10 +92,14 @@ export default function CrosstalkNetwork({ proteins }: CrosstalkNetworkProps) {
         width={800}
         height={500}
         nodeLabel="id"
-        nodeColor={(node: any) => node.val === 20 ? '#3b82f6' : '#8b5cf6'}
-        linkColor={() => 'rgba(255,255,255,0.2)'}
-        linkWidth={(link: any) => link.score * 2}
+        nodeColor={(node: any) => node.color}
+        linkColor={() => 'rgba(255,255,255,0.15)'}
+        linkWidth={(link: any) => link.score * 1.5}
         backgroundColor="#111111"
+        // Physics settings to stabilize graph quickly
+        d3AlphaDecay={0.05}
+        d3VelocityDecay={0.4}
+        cooldownTicks={100}
       />
     </div>
   );
