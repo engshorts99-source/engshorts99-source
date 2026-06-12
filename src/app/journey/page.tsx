@@ -20,7 +20,7 @@ function JourneyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [stage, setStage] = useState(0);
-  const [geneInfo, setGeneInfo] = useState<{ chr: string; map_location: string; tfs: string[]; symbol: string } | null>(null);
+  const [geneInfo, setGeneInfo] = useState<{ chr: string; map_location: string; tfs: string[]; symbol: string; tfSource: string } | null>(null);
   
   // Parse "?p=p53:P04637,EGFR:P00533"
   const pParam = searchParams.get('p') || '';
@@ -50,13 +50,14 @@ function JourneyContent() {
         return fetch(`/api/tfs?gene=${officialSymbol}`)
           .then(r => r.json())
           .then(tfData => {
-            const tfs = tfData.tfs && tfData.tfs.length > 0 ? tfData.tfs : ['TBP', 'SP1', 'POL2'];
-            setGeneInfo({ chr, map_location, tfs, symbol: officialSymbol });
+            const tfs = tfData.tfs && tfData.tfs.length > 0 ? tfData.tfs : ['TBP', 'SP1'];
+            const tfSource = tfData.source || 'Fallback';
+            setGeneInfo({ chr, map_location, tfs, symbol: officialSymbol, tfSource });
           });
       })
       .catch(err => {
         console.error("Gene info fetch error", err);
-        setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'], symbol: proteins[0].name });
+        setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'], symbol: proteins[0].name, tfSource: 'Fallback' });
       });
   }, [proteins]);
 
@@ -71,7 +72,9 @@ function JourneyContent() {
     {
       title: "Transcription Regulation",
       desc: geneInfo
-        ? `At the nucleosome level, exact regulatory Transcription Factors for ${geneInfo.symbol} (such as ${geneInfo.tfs.join(', ')}) bind to the promoter region. They recruit RNA Polymerase II to begin transcribing the gene into mRNA.`
+        ? geneInfo.tfSource === 'TRRUST' 
+          ? `At the nucleosome level, exact regulatory Transcription Factors for ${geneInfo.symbol} (such as ${geneInfo.tfs.join(', ')}) bind to the promoter region. They recruit RNA Polymerase II to begin transcribing the gene into mRNA.`
+          : `Note: The TRRUST database has no exact experimentally verified transcription factors for ${geneInfo.symbol}. However, key interacting proteins (${geneInfo.tfs.join(', ')}) likely participate in its regulatory complex, recruiting RNA Polymerase II to begin transcribing the gene.`
         : `Transcription Factors bind to the promoter region, recruiting RNA Polymerase II...`
     },
     {
