@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProteinStructure from '@/components/ProteinStructure';
 import CellLocalization from '@/components/CellLocalization';
 import CrosstalkNetwork from '@/components/CrosstalkNetwork';
+import AntibodyFinder from '@/components/AntibodyFinder';
 import styles from './page.module.css';
 
 const BASE_STAGES = [
@@ -19,7 +20,7 @@ function JourneyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [stage, setStage] = useState(0);
-  const [geneInfo, setGeneInfo] = useState<{ chr: string; map_location: string; tfs: string[] } | null>(null);
+  const [geneInfo, setGeneInfo] = useState<{ chr: string; map_location: string; tfs: string[]; symbol: string } | null>(null);
   
   // Parse "?p=p53:P04637,EGFR:P00533"
   const pParam = searchParams.get('p') || '';
@@ -36,24 +37,27 @@ function JourneyContent() {
   useEffect(() => {
     if (!proteins.length) return;
     
-    // Fetch precise genomic location and exact TFs concurrently
-    Promise.all([
-      fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos`).then(r => r.json()),
-      fetch(`/api/tfs?gene=${proteins[0].name}`).then(r => r.json())
-    ])
-    .then(([myGeneData, tfData]) => {
-      const hit = myGeneData.hits?.[0];
-      const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
-      const map_location = hit?.map_location || 'Unknown Band';
-      
-      const tfs = tfData.tfs || ['TBP', 'SP1'];
-
-      setGeneInfo({ chr, map_location, tfs });
-    })
-    .catch(err => {
-      console.error("Gene info fetch error", err);
-      setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'] });
-    });
+    // Fetch precise genomic location and exact TFs by chaining correctly
+    fetch(`https://mygene.info/v3/query?q=symbol:${proteins[0].name}&species=human&fields=map_location,genomic_pos,symbol`)
+      .then(res => res.json())
+      .then(myGeneData => {
+        const hit = myGeneData.hits?.[0];
+        const chr = hit?.genomic_pos?.chr || hit?.map_location?.split(/[pq]/)[0] || '?';
+        const map_location = hit?.map_location || 'Unknown Band';
+        const officialSymbol = hit?.symbol || proteins[0].name.toUpperCase();
+        
+        // Use the official HGNC symbol to fetch exact TFs from TRRUST
+        return fetch(`/api/tfs?gene=${officialSymbol}`)
+          .then(r => r.json())
+          .then(tfData => {
+            const tfs = tfData.tfs && tfData.tfs.length > 0 ? tfData.tfs : ['TBP', 'SP1', 'POL2'];
+            setGeneInfo({ chr, map_location, tfs, symbol: officialSymbol });
+          });
+      })
+      .catch(err => {
+        console.error("Gene info fetch error", err);
+        setGeneInfo({ chr: '?', map_location: 'Unknown', tfs: ['TBP', 'SP1'], symbol: proteins[0].name });
+      });
   }, [proteins]);
 
   // Info content per stage
@@ -67,7 +71,7 @@ function JourneyContent() {
     {
       title: "Transcription Regulation",
       desc: geneInfo
-        ? `At the nucleosome level, specific Transcription Factors (${geneInfo.tfs.join(', ')}) bind to the promoter region. They regulate and recruit RNA Polymerase II to begin transcribing the ${mainProtein} gene.`
+        ? `At the nucleosome level, exact regulatory Transcription Factors for ${geneInfo.symbol} (such as ${geneInfo.tfs.join(', ')}) bind to the promoter region. They recruit RNA Polymerase II to begin transcribing the gene into mRNA.`
         : `Transcription Factors bind to the promoter region, recruiting RNA Polymerase II...`
     },
     {
@@ -278,6 +282,9 @@ function JourneyContent() {
           Next Phase
         </button>
       </div>
+
+      {/* Antibody Finder Floating Action Button */}
+      <AntibodyFinder gene={geneInfo?.symbol || mainProtein} />
     </main>
   );
 }
